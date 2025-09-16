@@ -1,3 +1,57 @@
+
+// ======== Override Swal.fire and MSL.fire to always show one spinner ========
+
+function showSpinner() {
+    Swal.fire({
+        title: 'Processing...',
+        html: '<div class="loader"></div>',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showConfirmButton: false,
+        width: 200
+    });
+}
+
+// Override Swal.fire
+if (typeof Swal !== 'undefined') {
+    Swal._originalFire = Swal.fire;
+    Swal.fire = function() {
+        return showSpinner();
+    };
+}
+
+// Override MSL.fire
+if (typeof MSL !== 'undefined') {
+    MSL._originalFire = MSL.fire;
+    MSL.fire = function() {
+        return showSpinner();
+    };
+}
+
+// ======== Spinner CSS ========
+if (!document.getElementById('cf-simple-loader-style')) {
+    const style = document.createElement('style');
+    style.id = 'cf-simple-loader-style';
+    style.innerHTML = `
+    .loader {
+      border: 6px solid #f3f3f3;
+      border-top: 6px solid #3498db;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: auto;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }`;
+    document.head.appendChild(style);
+}
+
+
+
 // =====================================================================
 // ==================== ОСНОВНЫЕ НАСТРОЙКИ СКРИПТА =====================
 // =====================================================================
